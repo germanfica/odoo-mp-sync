@@ -13,14 +13,39 @@ export const syncLastNHours = async (hours = 1) => {
 
     const uid = await login();
 
-    // Creamos las líneas en lote
-    const lines = payments.map(p => toBankStatementLine(p, cfg.bankJournalId));
-    const lineIds = await executeKw(uid,
-        'account.bank.statement.line', 'create', [lines]);
+    // Paso 1: obtener refs a importar
+    const refsToImport = payments.map(p => p.id.toString());
 
-    // Opcional: pedir a Odoo que intente reconciliar en lote
-    // await executeKw(uid,
-    //     'account.bank.statement.line', 'process_reconciliation', [lineIds]);
+    // Paso 2: buscar extractos ya existentes en Odoo
+    const existingLines = await executeKw(
+        uid,
+        'account.bank.statement.line',
+        'search_read',
+        [
+            [
+                ['journal_id', '=', cfg.bankJournalId],
+                ['payment_ref', 'in', refsToImport]
+            ]
+        ],
+        { fields: ['payment_ref'] }
+    );
+    const existingRefs = new Set(existingLines.map(line => line.payment_ref));
 
-    return { imported: lineIds.length };
+    // Paso 3: filtrar pagos nuevos
+    const newPayments = payments.filter(p => !existingRefs.has(p.id.toString()));
+    if (!newPayments.length) return { imported: 0, skipped: refsToImport.length };
+
+    // Paso 4: mapear y crear sólo las líneas nuevas
+    const newLines = newPayments.map(p => toBankStatementLine(p, cfg.bankJournalId));
+    const createdIds = await executeKw(
+        uid,
+        'account.bank.statement.line',
+        'create',
+        [newLines]
+    );
+
+    return {
+        imported: createdIds.length,
+        skipped: refsToImport.length - newPayments.length
+    };
 };
