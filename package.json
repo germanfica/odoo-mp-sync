@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "odoo": "nodemon odoo.js",
+    "mercadopago": "nodemon mercadopago.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "type": "module",
