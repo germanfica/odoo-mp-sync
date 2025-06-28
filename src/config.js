@@ -8,5 +8,6 @@ export const cfg = {
         user: process.env.ODOO_USER,
         pass: process.env.ODOO_PASS
     },
-    bankJournalId: Number(process.env.BANK_JOURNAL_ID)
+    bankJournalId: Number(process.env.BANK_JOURNAL_ID),
+    bankAccountId: Number(process.env.BANK_ACCOUNT_ID)
 };
